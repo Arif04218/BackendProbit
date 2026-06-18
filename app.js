@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://nama-project-kamu.vercel.app"
+    "https://frontend-probit-phi.vercel.app"
   ],
   credentials: true
 }));
