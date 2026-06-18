@@ -11,11 +11,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://frontend-probit-phi.vercel.app",
-    "https://frontend-probit-eq8mj44wj-arifs-projects-88f27758.vercel.app"
-  ],
+  origin: function (origin, callback) {
+    if (
+      !origin ||
+      origin === "http://localhost:5173" ||
+      origin.endsWith(".vercel.app")
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
