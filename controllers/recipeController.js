@@ -1,23 +1,19 @@
 import { Recipe, User } from "../models/index.js";
 import { logActivity } from "../utils/activityLog.js";
-import fs from "fs";
-import path from "path";
-
-const deleteFile = (filePath) => {
-  if (filePath && fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
-};
+import {
+  uploadToSupabase,
+  deleteFromSupabase,
+} from "../utils/uploadToSupabase.js";
 
 export const createRecipe = async (req, res) => {
   try {
     const { title, category, calories, details } = req.body;
 
-    // 1. Ambil path dari req.file (ini ditambahkan oleh middleware multer)
-    // Jika req.file ada, ambil path-nya. Jika tidak ada, simpan null/string kosong
-    const image_url = req.file ? req.file.path : null;
+    if (!title) {
+      return res.status(400).json({ message: "title is required" });
+    }
 
-    if (!title) return res.status(400).json({ message: "title is required" });
+    const image_url = await uploadToSupabase(req.file, "recipes");
 
     const recipe = await Recipe.create({
       admin_id: req.user.id,
@@ -25,7 +21,7 @@ export const createRecipe = async (req, res) => {
       category,
       calories,
       details,
-      image_url, // 2. Simpan path yang sudah didapat
+      image_url,
     });
 
     await logActivity(req.user.id, "ADMIN_CREATE_RECIPE");
@@ -58,7 +54,10 @@ export const getRecipeById = async (req, res) => {
       ],
     });
 
-    if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
+    }
+
     return res.json({ status: "success", data: recipe });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -68,19 +67,19 @@ export const getRecipeById = async (req, res) => {
 export const updateRecipe = async (req, res) => {
   try {
     const recipe = await Recipe.findByPk(req.params.id);
-    if (!recipe) return res.status(404).json({ message: "Recipe not found" });
 
-    // Jika ada file baru yang di-upload
-    if (req.file) {
-      // 1. Hapus gambar lama dari server
-      const oldPath = recipe.image_url;
-      deleteFile(oldPath);
-
-      // 2. Update image_url dengan path file baru
-      req.body.image_url = req.file.path;
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
     }
 
-    await recipe.update(req.body);
+    const updateData = { ...req.body };
+
+    if (req.file) {
+      await deleteFromSupabase(recipe.image_url);
+      updateData.image_url = await uploadToSupabase(req.file, "recipes");
+    }
+
+    await recipe.update(updateData);
     await logActivity(req.user.id, "ADMIN_UPDATE_RECIPE");
 
     return res.json({
@@ -96,17 +95,20 @@ export const updateRecipe = async (req, res) => {
 export const deleteRecipe = async (req, res) => {
   try {
     const recipe = await Recipe.findByPk(req.params.id);
-    if (!recipe) return res.status(404).json({ message: "Recipe not found" });
 
-    // Hapus gambar fisik sebelum menghapus data dari DB
-    if (recipe.image_url) {
-      deleteFile(recipe.image_url);
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
     }
 
+    await deleteFromSupabase(recipe.image_url);
     await recipe.destroy();
+
     await logActivity(req.user.id, "ADMIN_DELETE_RECIPE");
 
-    return res.json({ status: "success", message: "Recipe deleted" });
+    return res.json({
+      status: "success",
+      message: "Recipe deleted",
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
