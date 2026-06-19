@@ -9,6 +9,5 @@ const Favorite = sequelize.define("favorites", {
 }, {
   underscored: true,
   timestamps: true,
-  indexes: [{ unique: true, fields: ["user_id", "recipe_id"] }, { unique: true, fields: ["user_id", "blog_id"] }]
 });
 export default Favorite;
