@@ -19,7 +19,13 @@ export const addFavorite = async (req, res) => {
     await logActivity(req.user.id, "ADD_FAVORITE_RECIPE");
     return res.status(201).json({ status: "success", data: favorite });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    console.error("ADD FAVORITE ERROR:", error);
+
+    return res.status(500).json({
+      message: error.message,
+      name: error.name,
+      parent: error.parent?.detail,
+    });
   }
 };
 
