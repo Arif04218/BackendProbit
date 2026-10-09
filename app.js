@@ -15,7 +15,7 @@ app.use(cors({
     if (
       !origin ||
       origin === "http://localhost:5173" ||
-      origin === "https://frontend-probit-phi.vercel.app/"
+      origin === "https://frontend-probit-phi.vercel.app"
     ) {
       callback(null, true);
     } else {
